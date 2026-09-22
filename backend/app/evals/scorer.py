@@ -5,11 +5,15 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.config import settings
+from app.evals.context import build_eval_user_message
+from app.evals.structured_scorer import score_structured_json
 from app.guardrails.engine import check_input
 from app.llm.client import chat_completion, extract_json_payload
 from app.llm.prompts import EXPLOIT_SYNTHESIS_SYSTEM, JUDGE_SYSTEM, RAG_SYSTEM, TRIAGE_SYSTEM
 from app.llm.router import ModelTier, select_tier
 from app.llm.types import ChatMessage
+
+_STRUCTURED_EVAL_TYPES = {"code_based_json", "rag_triad_groundedness"}
 
 
 @dataclass
@@ -64,7 +68,33 @@ async def _score_with_judge(case: dict[str, Any], model_output: str) -> float:
     return float(payload.get("groundedness", 0.0))
 
 
+async def _generate_model_output(case: dict[str, Any], eval_type: str, slice_name: str) -> tuple[str, int]:
+    tier = select_tier(eval_type=eval_type, task_type=slice_name)
+    system_prompt = _system_prompt_for_case(eval_type, slice_name)
+    user_message = build_eval_user_message(case)
+
+    response = await chat_completion(
+        tier,
+        [
+            ChatMessage(role="system", content=system_prompt),
+            ChatMessage(role="user", content=user_message),
+        ],
+        temperature=0.0,
+        max_tokens=1024,
+    )
+    return response.content, response.latency_ms
+
+
+def _normalize_case(case: dict[str, Any]) -> dict[str, Any]:
+    normalized = dict(case)
+    expected = normalized.get("expected_output")
+    if isinstance(expected, str):
+        normalized["expected_output"] = json.loads(expected)
+    return normalized
+
+
 async def score_case(case: dict[str, Any]) -> CaseScore:
+    case = _normalize_case(case)
     eval_type = case["eval_type"]
     slice_name = case["slice"]
     latency_ms = 0
@@ -83,30 +113,54 @@ async def score_case(case: dict[str, Any]) -> CaseScore:
             latency_ms=latency_ms,
         )
 
-    tier = select_tier(eval_type=eval_type, task_type=slice_name)
-    system_prompt = _system_prompt_for_case(eval_type, slice_name)
-    response = await chat_completion(
-        tier,
-        [
-            ChatMessage(role="system", content=system_prompt),
-            ChatMessage(role="user", content=case["input_prompt"]),
-        ],
-    )
-    latency_ms = response.latency_ms
+    model_output, latency_ms = await _generate_model_output(case, eval_type, slice_name)
 
-    if eval_type == "llm_as_judge_cross_family":
-        groundedness = await _score_with_judge(case, response.content)
+    if eval_type in _STRUCTURED_EVAL_TYPES:
+        try:
+            actual = extract_json_payload(model_output)
+            groundedness, detail = score_structured_json(case["expected_output"], actual)
+            scorer = "structured"
+        except Exception as exc:
+            groundedness = 0.0
+            detail = f"invalid JSON: {exc}"
+            scorer = "structured"
     else:
-        groundedness = await _score_with_judge(case, response.content)
+        groundedness = await _score_with_judge(case, model_output)
+        detail = f"judge groundedness {groundedness:.2f}"
+        scorer = "judge"
+
+        if groundedness < settings.eval_groundedness_block_threshold:
+            retry_output, retry_latency = await _generate_model_output(case, eval_type, slice_name)
+            latency_ms += retry_latency
+            retry_score = await _score_with_judge(case, retry_output)
+            if retry_score > groundedness:
+                groundedness = retry_score
+                detail = f"judge retry groundedness {groundedness:.2f}"
+                model_output = retry_output
+
+    if eval_type in _STRUCTURED_EVAL_TYPES and groundedness < settings.eval_groundedness_block_threshold:
+        retry_output, retry_latency = await _generate_model_output(case, eval_type, slice_name)
+        latency_ms += retry_latency
+        try:
+            retry_actual = extract_json_payload(retry_output)
+            retry_score, retry_detail = score_structured_json(case["expected_output"], retry_actual)
+            if retry_score > groundedness:
+                groundedness = retry_score
+                detail = f"{scorer} retry: {retry_detail}"
+        except Exception:
+            pass
 
     passed = groundedness >= settings.eval_groundedness_block_threshold
+    if eval_type in _STRUCTURED_EVAL_TYPES and detail == "all fields matched":
+        detail = f"{scorer}: {detail}"
+
     return CaseScore(
         case_id=case["case_id"],
         slice=slice_name,
         eval_type=eval_type,
         groundedness=groundedness,
         passed=passed,
-        detail=f"Groundedness {groundedness:.2f}",
+        detail=detail if eval_type in _STRUCTURED_EVAL_TYPES else detail,
         latency_ms=latency_ms,
     )
 
