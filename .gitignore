@@ -16,6 +16,14 @@ dist-ssr
 .nitro
 *.local
 
+# Python backend
+backend/.venv/
+backend/.env
+__pycache__/
+*.pyc
+.pytest_cache/
+golden_dataset.json
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars
