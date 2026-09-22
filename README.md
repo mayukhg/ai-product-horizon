@@ -125,20 +125,19 @@ npm run dev                    # or: bun run dev
 - **[End-to-end workflow](docs/workflow.md)** — how a Qualys scan becomes a human-approved
   remediation action, from triage through Lead-Worker orchestration, model routing, HITL gates,
   and golden-dataset evals.
-- **[LLM setup guide](docs/LLM_SETUP.md)** — approved hybrid model stack (Llama 3.3 70B, Claude
-  Sonnet 4 via OpenRouter, Llama Guard 3, nomic-embed-text), when to provide your OpenRouter API
-  key, eval release gates, and JWT auth configuration.
+- **[LLM setup guide](docs/LLM_SETUP.md)** — OpenRouter model stack, when to provide your API key,
+  eval release gates, and JWT auth configuration.
 
-### LLM stack (approved)
+### LLM stack (OpenRouter)
 
-| Tier | Model | Provider |
-|---|---|---|
-| Smart Intern | Llama 3.3 70B | Local Ollama/vLLM |
-| PhD Reasoner | Claude Sonnet 4 | OpenRouter |
-| Guardrails | Llama Guard 3 8B | Local Ollama |
-| Embeddings | nomic-embed-text (384-dim) | Local Ollama |
-| Judge | Claude Sonnet 4 | OpenRouter |
+| Tier | OpenRouter model ID |
+|---|---|
+| Smart Intern | `meta-llama/llama-3.3-70b-instruct` |
+| PhD Reasoner | `anthropic/claude-sonnet-4` |
+| Guardrails | `meta-llama/llama-guard-3-8b` |
+| Embeddings | `openai/text-embedding-3-small` (1536-dim) |
+| Judge | `anthropic/claude-sonnet-4` |
 
-By default `LLM_MODE=mock` — no API keys required. Set `LLM_MODE=live` and add
-`OPENROUTER_API_KEY` to `backend/.env` when you want live PhD-tier reasoning and judge evals.
+By default `LLM_MODE=mock` — no API key required. Set `LLM_MODE=live` and add
+`OPENROUTER_API_KEY` to `backend/.env` for live inference across all tiers.
 See **[docs/LLM_SETUP.md](docs/LLM_SETUP.md)** for the full setup sequence.

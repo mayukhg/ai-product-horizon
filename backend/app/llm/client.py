@@ -16,27 +16,34 @@ class LLMConfigurationError(RuntimeError):
     pass
 
 
-def _tier_endpoint(tier: ModelTier) -> tuple[str, str, str]:
+def _require_openrouter() -> None:
+    if not settings.openrouter_configured:
+        raise LLMConfigurationError(
+            "OPENROUTER_API_KEY is required when LLM_MODE=live. "
+            "Set OPENROUTER_API_KEY in backend/.env, or use LLM_MODE=mock for offline runs."
+        )
+
+
+def _openrouter_headers() -> dict[str, str]:
+    _require_openrouter()
+    return {
+        "Authorization": f"Bearer {settings.openrouter_api_key}",
+        "HTTP-Referer": settings.openrouter_site_url,
+        "X-Title": settings.openrouter_app_name,
+    }
+
+
+def _tier_model(tier: ModelTier) -> str:
     if tier == ModelTier.SMART_INTERN:
-        return settings.smart_intern_base_url, settings.smart_intern_model, settings.smart_intern_api_key
+        return settings.smart_intern_model
     if tier == ModelTier.PHD_REASONER:
-        if not settings.openrouter_configured:
-            raise LLMConfigurationError(
-                "OPENROUTER_API_KEY is required for PhD Reasoner tasks. "
-                "Set it in backend/.env and LLM_MODE=live, or use LLM_MODE=mock for offline runs."
-            )
-        return settings.openrouter_base_url, settings.phd_reasoner_model, settings.openrouter_api_key
+        return settings.phd_reasoner_model
     if tier == ModelTier.JUDGE:
-        if not settings.openrouter_configured:
-            raise LLMConfigurationError(
-                "OPENROUTER_API_KEY is required for cross-family judge evals. "
-                "Set OPENROUTER_API_KEY in backend/.env."
-            )
-        return settings.openrouter_base_url, settings.judge_model, settings.openrouter_api_key
+        return settings.judge_model
     if tier == ModelTier.GUARDRAIL:
-        return settings.guardrail_base_url, settings.guardrail_model, settings.guardrail_api_key
+        return settings.guardrail_model
     if tier == ModelTier.EMBEDDING:
-        return settings.embedding_base_url, settings.embedding_model, settings.embedding_api_key
+        return settings.embedding_model
     raise ValueError(f"Unknown tier: {tier}")
 
 
@@ -72,10 +79,10 @@ def _mock_chat_response(tier: ModelTier, messages: list[ChatMessage]) -> LLMResp
 
 
 def _mock_embedding(text: str) -> EmbeddingResponse:
-    # Deterministic 384-dim pseudo-embedding for mock mode
+    dims = settings.embedding_dimensions
     seed = sum(ord(c) for c in text[:256])
-    vector = [round(((seed * (i + 1)) % 1000) / 1000.0 - 0.5, 6) for i in range(384)]
-    return EmbeddingResponse(vector=vector, model="mock/nomic-embed-text", latency_ms=5)
+    vector = [round(((seed * (i + 1)) % 1000) / 1000.0 - 0.5, 6) for i in range(dims)]
+    return EmbeddingResponse(vector=vector, model=f"mock/{settings.embedding_model}", latency_ms=5)
 
 
 async def chat_completion(
@@ -88,7 +95,7 @@ async def chat_completion(
     if not settings.is_live_llm:
         return _mock_chat_response(tier, messages)
 
-    base_url, model, api_key = _tier_endpoint(tier)
+    model = _tier_model(tier)
     payload: dict[str, Any] = {
         "model": model,
         "messages": [{"role": m.role, "content": m.content} for m in messages],
@@ -96,14 +103,13 @@ async def chat_completion(
         "max_tokens": max_tokens,
     }
 
-    headers = {"Authorization": f"Bearer {api_key}"}
-    if tier in (ModelTier.PHD_REASONER, ModelTier.JUDGE):
-        headers["HTTP-Referer"] = "https://github.com/mayukhg/ai-product-horizon"
-        headers["X-Title"] = "HorizonAI CyberRisk Resident"
-
     started = time.perf_counter()
     async with httpx.AsyncClient(timeout=120.0) as client:
-        response = await client.post(f"{base_url.rstrip('/')}/chat/completions", json=payload, headers=headers)
+        response = await client.post(
+            f"{settings.openrouter_base_url.rstrip('/')}/chat/completions",
+            json=payload,
+            headers=_openrouter_headers(),
+        )
         response.raise_for_status()
         data = response.json()
 
@@ -125,13 +131,19 @@ async def embed_text(text: str) -> EmbeddingResponse:
     if not settings.is_live_llm:
         return _mock_embedding(text)
 
-    base_url, model, api_key = _tier_endpoint(ModelTier.EMBEDDING)
+    model = _tier_model(ModelTier.EMBEDDING)
+    payload: dict[str, Any] = {
+        "model": model,
+        "input": text,
+        "dimensions": settings.embedding_dimensions,
+    }
+
     started = time.perf_counter()
     async with httpx.AsyncClient(timeout=60.0) as client:
         response = await client.post(
-            f"{base_url.rstrip('/')}/embeddings",
-            json={"model": model, "input": text},
-            headers={"Authorization": f"Bearer {api_key}"},
+            f"{settings.openrouter_base_url.rstrip('/')}/embeddings",
+            json=payload,
+            headers=_openrouter_headers(),
         )
         response.raise_for_status()
         data = response.json()

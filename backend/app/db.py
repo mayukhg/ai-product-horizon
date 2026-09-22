@@ -43,11 +43,11 @@ async def execute(query: str, *args: Any) -> str:
 
 
 async def apply_migrations() -> None:
-    migration_path = Path(__file__).resolve().parents[1] / "db" / "migrations" / "001_initial.sql"
-    sql = migration_path.read_text()
+    migrations_dir = Path(__file__).resolve().parents[1] / "db" / "migrations"
     pool = await get_pool()
     async with pool.acquire() as conn:
-        await conn.execute(sql)
+        for migration_path in sorted(migrations_dir.glob("*.sql")):
+            await conn.execute(migration_path.read_text())
 
 
 async def table_count(table_name: str) -> int:

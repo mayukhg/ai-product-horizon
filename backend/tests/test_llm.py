@@ -29,7 +29,7 @@ async def test_mock_chat_completion():
 @pytest.mark.asyncio
 async def test_mock_embedding_dimensions():
     response = await embed_text("asset-192.168.1.10")
-    assert len(response.vector) == 384
+    assert len(response.vector) == settings.embedding_dimensions
 
 
 @pytest.mark.asyncio
@@ -71,5 +71,8 @@ async def test_openrouter_required_in_live_mode(monkeypatch):
     monkeypatch.setattr(settings, "llm_mode", "live")
     monkeypatch.setattr(settings, "openrouter_api_key", "")
     with pytest.raises(LLMConfigurationError) as exc:
-        await chat_completion(ModelTier.PHD_REASONER, [ChatMessage(role="user", content="test")])
+        await chat_completion(ModelTier.SMART_INTERN, [ChatMessage(role="user", content="test")])
     assert "OPENROUTER_API_KEY" in str(exc.value)
+
+    with pytest.raises(LLMConfigurationError):
+        await embed_text("asset-192.168.1.10")

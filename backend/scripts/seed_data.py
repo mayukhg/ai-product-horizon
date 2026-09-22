@@ -162,8 +162,8 @@ def generate_golden_dataset() -> dict:
     }
 
 
-def _random_embedding() -> str:
-    values = [round(random.uniform(-1, 1), 6) for _ in range(384)]
+def _random_embedding(dimensions: int = 1536) -> str:
+    values = [round(random.uniform(-1, 1), 6) for _ in range(dimensions)]
     return "[" + ",".join(str(v) for v in values) + "]"
 
 
@@ -292,8 +292,8 @@ async def seed_database(conn: asyncpg.Connection, payload: dict) -> None:
         """
         INSERT INTO model_routes (task_label, model_name, detail, is_active, cost_multiplier)
         VALUES
-          ('CVE lookup', 'Llama 3.3 70B', 'Smart Intern · on-prem · 22× cost saving', TRUE, 0.05),
-          ('Attack-chain synthesis', 'Claude Sonnet 4', 'PhD Reasoner · OpenRouter · high complexity', FALSE, 1.0)
+          ('CVE lookup', 'Llama 3.3 70B', 'Smart Intern · OpenRouter · meta-llama/llama-3.3-70b-instruct', TRUE, 0.05),
+          ('Attack-chain synthesis', 'Claude Sonnet 4', 'PhD Reasoner · OpenRouter · anthropic/claude-sonnet-4', FALSE, 1.0)
         """
     )
 

@@ -323,7 +323,7 @@ function ResidentView({
         <ScoreCard score={summary?.tru_risk_score} delta={summary?.tru_risk_delta} />
         <StatCard icon={Server} label="Assets in context" value={(summary?.asset_count ?? 2847).toLocaleString()} detail={`${summary?.internet_facing_count ?? 164} internet-facing`} tone="cyan" />
         <StatCard icon={ShieldAlert} label="Critical findings" value={String(summary?.critical_findings ?? 7).padStart(2, "0")} detail="+2 since last scan" tone="danger" />
-        <StatCard icon={RouteIcon} label="Model routing" value="On-prem" detail="Llama-3.3-70B · healthy" tone="purple" />
+        <StatCard icon={RouteIcon} label="Model routing" value="OpenRouter" detail="Llama-3.3-70B · healthy" tone="purple" />
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(340px,.75fr)]">

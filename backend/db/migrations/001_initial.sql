@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS assets (
     region VARCHAR(50) NOT NULL,
     internet_facing BOOLEAN NOT NULL DEFAULT FALSE,
     tru_risk_score INTEGER NOT NULL DEFAULT 0,
-    embedding vector(384)
+    embedding vector(1536)
 );
 
 CREATE TABLE IF NOT EXISTS vulnerabilities (

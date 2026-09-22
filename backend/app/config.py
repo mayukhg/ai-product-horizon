@@ -8,31 +8,21 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
     golden_dataset_path: str = "golden_dataset.json"
 
-    # LLM mode: mock (CI / no keys) or live (real inference)
+    # LLM mode: mock (CI / no keys) or live (real inference via OpenRouter)
     llm_mode: str = "mock"
 
-    # Smart Intern — local Ollama / vLLM (OpenAI-compatible)
-    smart_intern_base_url: str = "http://127.0.0.1:11434/v1"
-    smart_intern_model: str = "llama3.3:70b"
-    smart_intern_api_key: str = "ollama"
-
-    # PhD Reasoner — OpenRouter (cloud frontier)
+    # OpenRouter — all model tiers route through one API key
     openrouter_api_key: str = ""
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    openrouter_site_url: str = "https://github.com/mayukhg/ai-product-horizon"
+    openrouter_app_name: str = "HorizonAI CyberRisk Resident"
+
+    smart_intern_model: str = "meta-llama/llama-3.3-70b-instruct"
+    guardrail_model: str = "meta-llama/llama-guard-3-8b"
+    embedding_model: str = "openai/text-embedding-3-small"
+    embedding_dimensions: int = 1536
     phd_reasoner_model: str = "anthropic/claude-sonnet-4"
     phd_reasoner_escalation_model: str = "anthropic/claude-opus-4"
-
-    # Embeddings — local preferred (384-dim matches pgvector schema)
-    embedding_base_url: str = "http://127.0.0.1:11434/v1"
-    embedding_model: str = "nomic-embed-text"
-    embedding_api_key: str = "ollama"
-
-    # Guardrails — local Llama Guard
-    guardrail_base_url: str = "http://127.0.0.1:11434/v1"
-    guardrail_model: str = "llama-guard3:8b"
-    guardrail_api_key: str = "ollama"
-
-    # Judge — cross-family via OpenRouter
     judge_model: str = "anthropic/claude-sonnet-4"
 
     # Eval release gates
