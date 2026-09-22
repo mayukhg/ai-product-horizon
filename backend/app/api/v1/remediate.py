@@ -1,7 +1,8 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.auth.deps import get_current_user
 from app.db import fetch_one
 from app.schemas import ErrorResponse, RemediateApproveRequest, RemediateApproveResponse
 
@@ -9,7 +10,10 @@ router = APIRouter(prefix="/remediate", tags=["remediate"])
 
 
 @router.post("/approve", response_model=RemediateApproveResponse, responses={404: {"model": ErrorResponse}})
-async def approve_remediation(body: RemediateApproveRequest) -> RemediateApproveResponse:
+async def approve_remediation(
+    body: RemediateApproveRequest,
+    _user: dict = Depends(get_current_user),
+) -> RemediateApproveResponse:
     row = await fetch_one(
         "SELECT remediation_id, status FROM remediation_actions WHERE remediation_id = $1",
         body.remediation_id,

@@ -292,8 +292,8 @@ async def seed_database(conn: asyncpg.Connection, payload: dict) -> None:
         """
         INSERT INTO model_routes (task_label, model_name, detail, is_active, cost_multiplier)
         VALUES
-          ('CVE lookup', 'Smart Intern', 'On-prem · 22× cost saving', TRUE, 0.05),
-          ('Attack-chain synthesis', 'PhD Reasoner', 'Escalated · high complexity', FALSE, 1.0)
+          ('CVE lookup', 'Llama 3.3 70B', 'Smart Intern · on-prem · 22× cost saving', TRUE, 0.05),
+          ('Attack-chain synthesis', 'Claude Sonnet 4', 'PhD Reasoner · OpenRouter · high complexity', FALSE, 1.0)
         """
     )
 

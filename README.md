@@ -125,3 +125,20 @@ npm run dev                    # or: bun run dev
 - **[End-to-end workflow](docs/workflow.md)** — how a Qualys scan becomes a human-approved
   remediation action, from triage through Lead-Worker orchestration, model routing, HITL gates,
   and golden-dataset evals.
+- **[LLM setup guide](docs/LLM_SETUP.md)** — approved hybrid model stack (Llama 3.3 70B, Claude
+  Sonnet 4 via OpenRouter, Llama Guard 3, nomic-embed-text), when to provide your OpenRouter API
+  key, eval release gates, and JWT auth configuration.
+
+### LLM stack (approved)
+
+| Tier | Model | Provider |
+|---|---|---|
+| Smart Intern | Llama 3.3 70B | Local Ollama/vLLM |
+| PhD Reasoner | Claude Sonnet 4 | OpenRouter |
+| Guardrails | Llama Guard 3 8B | Local Ollama |
+| Embeddings | nomic-embed-text (384-dim) | Local Ollama |
+| Judge | Claude Sonnet 4 | OpenRouter |
+
+By default `LLM_MODE=mock` — no API keys required. Set `LLM_MODE=live` and add
+`OPENROUTER_API_KEY` to `backend/.env` when you want live PhD-tier reasoning and judge evals.
+See **[docs/LLM_SETUP.md](docs/LLM_SETUP.md)** for the full setup sequence.

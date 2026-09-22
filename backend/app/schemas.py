@@ -72,6 +72,12 @@ class AgentTrajectoryResponse(BaseModel):
     workers: list[WorkerAgent]
 
 
+class AgentRunResponse(BaseModel):
+    run_id: str
+    scan_id: str
+    status: str
+
+
 class ModelRoute(BaseModel):
     label: str
     model: str
@@ -105,6 +111,26 @@ class EvalMetricsResponse(BaseModel):
     series: list[EvalMetricPoint]
     recent_runs: list[EvalRunItem]
     telemetry: list[dict[str, Any]]
+    release_blocked: bool = False
+    block_reason: str | None = None
+
+
+class EvalRunRequest(BaseModel):
+    limit: int | None = Field(default=None, ge=1, le=100)
+
+
+class EvalRunResponse(BaseModel):
+    status: str
+    run_id: str
+    llm_mode: str
+    total_cases: int
+    passed_cases: int
+    pass_rate_pct: float
+    mean_groundedness: float
+    mean_groundedness_pct: float
+    release_blocked: bool
+    block_reason: str | None = None
+    thresholds: dict[str, float]
 
 
 class RemediateApproveRequest(BaseModel):
