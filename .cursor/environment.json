@@ -1,0 +1,16 @@
+{
+  "name": "HorizonAI",
+  "install": "bash .cursor/scripts/install.sh",
+  "terminals": [
+    {
+      "name": "dev-server",
+      "command": "export PATH=\"$HOME/.bun/bin:$PATH\" && cd /workspace && bun run dev --host 0.0.0.0 --port 5173"
+    }
+  ],
+  "ports": [
+    {
+      "name": "vite-dev",
+      "port": 5173
+    }
+  ]
+}
