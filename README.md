@@ -61,25 +61,67 @@ HorizonAI implements AI across four core architectural pillars:
 ## Quick Start & Installation
 
 ### Prerequisites
-- [Node.js](https://nodejs.org/) 18+ & [Bun](https://bun.sh/)
+- [Node.js](https://nodejs.org/) 18+ & [Bun](https://bun.sh/) (optional; used automatically if `bun.lock` is present)
 - [Python](https://www.python.org/) 3.12+
 - [PostgreSQL](https://www.postgresql.org/) with `pgvector` extension enabled
 
-### Setup & Run
+### How to bring up the app
+
+HorizonAI runs as two processes: a FastAPI backend (port 8000) and a TanStack Start frontend
+(port 5173). The start scripts handle dependency installation, database setup, seeding, and
+health checks on first run.
+
+**Quick start (recommended):**
+
+| Platform | Start | Stop |
+|---|---|---|
+| macOS / Linux | [`./start.sh`](start.sh) | [`./stop.sh`](stop.sh) |
+| Windows (PowerShell) | [`./start.ps1`](start.ps1) | [`./stop.ps1`](stop.ps1) |
 
 ```bash
-# Clone repository
-git clone https://github.com/your-org/horizon-ai.git
-cd horizon-ai
-
-# Install dependencies
-npm install
-pip install -r requirements.txt
-
-# Setup database & apply migrations
-bash scripts/setup-postgres.sh
-python scripts/seed_data.py
-
-# Launch development environment (Frontend + Backend)
-./start.sh
+git clone https://github.com/mayukhg/ai-product-horizon.git
+cd ai-product-horizon
+./start.sh          # installs dependencies on first run, then starts API + frontend
 ```
+
+Then open **http://127.0.0.1:5173**. The script writes PID files (`.horizon-ai-api.pid`,
+`.horizon-ai-web.pid`) and logs (`.horizon-ai-api.log`, `.horizon-ai-web.log`) so `./stop.sh`
+can find and stop the right processes, and detects if the app is already running so it won't
+start a second copy.
+
+**Flags (bash):**
+
+| Flag | Effect |
+|---|---|
+| `--host` | Override bind address (default `127.0.0.1`) |
+| `--port` | Frontend port (default `5173`) |
+| `--api-port` | Backend API port (default `8000`) |
+| `--skip-seed` | Skip database seeding on startup |
+
+**Verifying the backend is up**, once the app is running:
+
+```bash
+curl http://127.0.0.1:8000/health
+curl http://127.0.0.1:8000/api/v1/triage
+```
+
+**Manual start**, if you'd rather not use the scripts:
+
+```bash
+npm install                    # or: bun install
+python3 -m venv backend/.venv
+backend/.venv/bin/pip install -r backend/requirements.txt
+bash scripts/setup-postgres.sh
+backend/.venv/bin/python backend/scripts/seed_data.py
+backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --app-dir backend &
+npm run dev                    # or: bun run dev
+```
+
+### Documentation
+
+- **[How to use the cockpit](docs/HOW_TO_USE.md)** — walkthrough of all five UI workflows
+  (CyberRisk Resident monitoring, HITL remediation approval, Eval Studio, Resident Roadmap, and
+  the data state simulator), each with a diagram and click-by-click steps.
+- **[End-to-end workflow](docs/workflow.md)** — how a Qualys scan becomes a human-approved
+  remediation action, from triage through Lead-Worker orchestration, model routing, HITL gates,
+  and golden-dataset evals.

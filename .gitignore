@@ -24,6 +24,10 @@ __pycache__/
 .pytest_cache/
 golden_dataset.json
 
+# Start/stop script runtime files
+.horizon-ai-api.pid
+.horizon-ai-web.pid
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars
